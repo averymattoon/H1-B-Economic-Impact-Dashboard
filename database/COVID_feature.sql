@@ -12,10 +12,10 @@ WITH period_metrics AS (
     l.worksite_state,
     a.fiscal_year,
     COUNT(*) AS application_count,
-    AVG(a.wage_offer) AS avg_wage,
+    AVG(a.annual_wage) AS avg_wage,
     PERCENTILE_CONT(0.5) 
-      WITHIN GROUP (ORDER BY a.wage_offer) AS median_wage,
-    SUM(a.wage_offer) AS total_wage_mass
+      WITHIN GROUP (ORDER BY a.annual_wage) AS median_wage,
+    SUM(a.annual_wage) AS total_wage_mass
   FROM applications a
   JOIN employers e ON a.emp_id = e.emp_id
   JOIN worksite_locations l ON a.site_id = l.site_id

@@ -52,7 +52,7 @@ export default function CovidImpactBarCharts({ data }: { data: CovidRow[] }) {
               dataKey="industry"
               width={260}
             />
-            <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
+            <Tooltip formatter={(v) => `${Number(v).toFixed(1)}%`} />
             <Bar dataKey="change">
               {chartData.map((_, i) => (
                 <Cell key={i} fill="#dc2626" />

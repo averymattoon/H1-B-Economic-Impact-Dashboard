@@ -64,7 +64,7 @@ export default function CovidStateChart({ data }: { data: CovidRow[] }) {
               dataKey="worksite_state"
               width={80}
             />
-            <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
+            <Tooltip formatter={(v) => `${Number(v).toFixed(1)}%`} />
             <Bar dataKey="pct_change_2019_2020" fill="#dc2626" />
           </BarChart>
         </ResponsiveContainer>

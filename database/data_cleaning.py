@@ -11,6 +11,14 @@ def clean_h1b_dataset(input_file, output_file='large_cleaned_h1b_test_2024.csv')
     df = pd.read_excel(input_file) if input_file.endswith('.xlsx') else pd.read_csv(input_file, low_memory=False)
     print(f"Original dataset: {len(df)} rows, {len(df.columns)} columns")
 
+    # FY2009 Case Data format: translate program codes and old DOT occupation codes
+    if 'PROGRAM_DESIGNATION' in df.columns and 'VISA_CLASS' not in df.columns:
+        df['VISA_CLASS'] = df['PROGRAM_DESIGNATION'].map(
+            {'R': 'H-1B', 'S': 'H-1B1 Singapore', 'C': 'H-1B1 Chile', 'A': 'E-3 Australian'})
+    if 'OCCUPATIONAL_CODE' in df.columns and 'SOC_CODE' not in df.columns:
+        codes = pd.to_numeric(df['OCCUPATIONAL_CODE'], errors='coerce').astype('Int64')
+        df['SOC_CODE'] = ('DOT-' + codes.astype(str).str.zfill(3)).where(codes.notna(), None)
+
     # Define column mappings (list of possible names for each field)
     column_mappings = {
         'app_id': ['CASE_NUMBER', 'LCA_CASE_NUMBER', 'CASE_NO'],
@@ -28,11 +36,11 @@ def clean_h1b_dataset(input_file, output_file='large_cleaned_h1b_test_2024.csv')
         'emp_state': ['EMPLOYER_STATE', 'LCA_CASE_EMPLOYER_STATE', 'STATE'],
         'emp_zip': ['EMPLOYER_POSTAL_CODE', 'LCA_CASE_EMPLOYER_POSTAL_CODE', 'POSTAL_CODE'],
         'employer_address': ['EMPLOYER_ADDRESS1', 'EMPLOYER_ADDRESS', 'LCA_CASE_EMPLOYER_ADDRESS', 'ADDRESS1'],
-        'worksite_city': ['WORKSITE_CITY', 'LCA_CASE_WORKLOC1_CITY', 'CITY_1'],
-        'worksite_state': ['WORKSITE_STATE', 'LCA_CASE_WORKLOC1_STATE', 'STATE_1'],
+        'worksite_city': ['WORKSITE_CITY', 'LCA_CASE_WORKLOC1_CITY', 'CITY_1', 'WORK_LOCATION_CITY1'],
+        'worksite_state': ['WORKSITE_STATE', 'LCA_CASE_WORKLOC1_STATE', 'STATE_1', 'WORK_LOCATION_STATE1'],
         'worksite_zip': ['WORKSITE_POSTAL_CODE'],
         'wage_offer': ['WAGE_RATE_OF_PAY_FROM', 'WAGE_RATE_OF_PAY_FROM_1', 'LCA_CASE_WAGE_RATE_FROM', 'WAGE_RATE_1'],
-        'wage_unit': ['WAGE_UNIT_OF_PAY', 'WAGE_UNIT_OF_PAY_1', 'LCA_CASE_WAGE_RATE_UNIT', 'RATE_PER_1'],
+        'wage_unit': ['WAGE_UNIT_OF_PAY', 'WAGE_UNIT_OF_PAY_1', 'LCA_CASE_WAGE_RATE_UNIT', 'RATE_PER_1', 'PW_UNIT_1'],
         'full_time': ['FULL_TIME_POSITION', 'FULL_TIME_POS'],
         'begin_date': ['BEGIN_DATE', 'EMPLOYMENT_START_DATE', 'LCA_CASE_EMPLOYMENT_START_DATE', 'PERIOD_OF_EMPLOYMENT_START_DATE'],
         'end_date': ['END_DATE', 'EMPLOYMENT_END_DATE', 'LCA_CASE_EMPLOYMENT_END_DATE', 'PERIOD_OF_EMPLOYMENT_END_DATE']

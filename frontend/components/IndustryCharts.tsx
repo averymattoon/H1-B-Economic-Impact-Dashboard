@@ -102,7 +102,7 @@ export default function IndustryCharts({ data }: IndustryChartsProps) {
             <YAxis tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
             <Tooltip
               contentStyle={{ backgroundColor: 'white', border: '1px solid #ccc' }}
-              formatter={(value: number) => `$${value.toLocaleString()}`}
+              formatter={(value) => `$${Number(value).toLocaleString()}`}
               labelFormatter={(label, payload) => {
                 if (payload && payload[0]) {
                   return payload[0].payload.fullName;

@@ -66,7 +66,7 @@ export default function StateCharts({ data }: StateChartsProps) {
             <YAxis tickFormatter={(value) => `$${value}M`} tick={{ fill: '#000000' }} />
             <Tooltip
               contentStyle={{ backgroundColor: 'white', border: '1px solid #ccc' }}
-              formatter={(value: number) => `$${value.toFixed(1)}M`}
+              formatter={(value) => `$${Number(value).toFixed(1)}M`}
             />
             <Legend />
             <Bar dataKey="totalWages" fill="#f59e0b" name="Total Annual Wages" />

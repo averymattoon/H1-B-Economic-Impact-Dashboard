@@ -15,10 +15,10 @@ WITH base_metrics AS (
     e.industry,
     a.emp_id,
     COUNT(*) AS app_count_by_employer,
-    SUM(COALESCE(a.wage_offer, 0)) AS wage_mass_by_employer
+    SUM(COALESCE(a.annual_wage, 0)) AS wage_mass_by_employer
   FROM applications a
   JOIN employers e ON a.emp_id = e.emp_id
-  WHERE a.wage_offer IS NOT NULL AND a.wage_offer > 0
+  WHERE a.annual_wage IS NOT NULL AND a.annual_wage > 0
   GROUP BY e.industry, a.emp_id
 ),
 industry_totals AS (
@@ -108,10 +108,10 @@ WITH base_metrics AS (
     l.worksite_state,
     a.emp_id,
     COUNT(*) AS app_count_by_employer,
-    SUM(COALESCE(a.wage_offer, 0)) AS wage_mass_by_employer
+    SUM(COALESCE(a.annual_wage, 0)) AS wage_mass_by_employer
   FROM applications a
   JOIN worksite_locations l ON a.site_id = l.site_id
-  WHERE a.wage_offer IS NOT NULL AND a.wage_offer > 0
+  WHERE a.annual_wage IS NOT NULL AND a.annual_wage > 0
   GROUP BY l.worksite_state, a.emp_id
 ),
 state_totals AS (

@@ -24,7 +24,7 @@ def get_db_connection():
     )
 
 class H1BFastLoader:
-    def __init__(self, data_dir='../data/avery'):
+    def __init__(self, data_dir='../data'):
         self.data_dir = Path(data_dir)
         self.conn = get_db_connection()
         self.cur = self.conn.cursor()
@@ -65,6 +65,14 @@ class H1BFastLoader:
             'full_time_position': 'full_time'
         }
         df = df.rename(columns=rename_map)
+
+        # Keep code columns as clean text (avoid 541511.0 / 02139.0 from float parsing)
+        for col in ['industry', 'emp_id', 'emp_zip', 'worksite_zip', 'soc_code']:
+            if col in df.columns:
+                df[col] = (df[col].astype('string')
+                                  .str.strip()
+                                  .str.replace(r'\.0$', '', regex=True)
+                                  .replace({'nan': pd.NA, '': pd.NA}))
 
         # Add missing columns with default values if they don't exist
         if 'emp_id' not in df.columns:
@@ -111,6 +119,10 @@ class H1BFastLoader:
             lambda row: row['wage_offer'] * wage_multipliers.get(row['wage_unit'], 1)
             if pd.notna(row['wage_offer']) else None, axis=1
         )
+        # Treat implausible annual wages as missing (data-entry errors, e.g. annual pay coded as hourly)
+        bad = (df['annual_wage'] < 10_000) | (df['annual_wage'] > 5_000_000)
+        print(f"  Blanking {bad.sum():,} implausible wages")
+        df.loc[bad, ['annual_wage', 'wage_offer']] = None
         return df
 
     def load_occupations(self, df):
