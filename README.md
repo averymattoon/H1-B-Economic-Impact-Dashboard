@@ -1,404 +1,158 @@
 # H-1B Economic Impact Dashboard
 
-**CS 554: Advanced Database Systems - Final Project**
+An interactive dashboard of **7.4 million certified H-1B Labor Condition Applications (FY2009–2024)** from the U.S. Department of Labor, showing where H-1B workers are concentrated by state, industry and employer, how filings changed during COVID, and which industries and states are most exposed to a large per-application fee.
 
-A full-stack web application that analyzes the economic impact of H-1B visa holders across U.S. industries and states, helping stakeholders understand how changes in immigration policy could affect the American economy.
+**Live dashboard: [h1-b-economic-impact-dashboard.vercel.app](https://h1-b-economic-impact-dashboard.vercel.app)**
 
----
+![Overview tab: H-1B applications by state, FY2024](docs/screenshots/overview.png)
 
-## 📊 Project Overview
-
-This project is an interactive analytics dashboard for exploring U.S. H-1B Labor Condition Applications (LCAs) using the U.S. Department of Labor OFLC disclosure/performance dataset. It helps users understand where H-1B filings cluster across **states, industries, and employers**, and how concentration patterns may affect vulnerability to policy shocks.
-
-The dashboard includes:
-
-- **Geographic Heatmaps**: Interactive U.S. maps showing H-1B application volume and policy exposure by state (hover tooltips + legends)
-- **Employer Analysis**: Top employers by certified application volume to surface sponsorship concentration
-- **Industry Analysis**: Top industries by application volume and wage patterns (average vs. median), plus long-tail industry rankings
-- **State Analysis**: State-level tables and charts with applications, distinct employers, average wage, and total wage mass
-- **COVID Trends**: Industry and state % change in applications from 2019 → 2020 to highlight pandemic-era shifts
-- **Policy Exposure Modeling**: A stress-test view that estimates cost burden under a **$100,000 fee per certified H-1B application**, and ranks industries/states using an exposure score combining volume, wage mass, and employer concentration
-- **Interactive Filters**: Global filtering by year, industry, and state across all tabs
-
-**Key Research Question**: *Where is H-1B expertise concentrated, and which states/industries would be most exposed under a large per-application cost shock (modeled as a $100,000 fee per certified application)?*
-
+Built as the final project for CS 554 (Advanced Database Systems) at Emory University, Fall 2025, by Jayden Bai, Unnati Agrawal and Avery Mattoon. After the course, the data pipeline was rebuilt to cover all 16 fiscal years and the dashboard was redeployed as a static site that needs no database.
 
 ---
 
-## 🛠️ Tech Stack
+## Key findings
 
-- **Frontend**: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4
-- **Backend**: Next.js API Routes (serverless functions)
-- **Database**: PostgreSQL 16 on Google Cloud SQL
-- **Visualization**: Recharts, react-simple-maps
-- **Data**: ~6M H-1B application records (2009-2024)
+**1. Filings peaked in FY2019 and have not returned to that level.** Certified H-1B applications grew from about 260,000 in FY2010 to 580,761 in FY2019, fell to 489,780 in FY2021 (−15.7% vs FY2019), and stood at 505,742 in FY2024.
+
+**2. Half of all applications go to five states.** California (18.9%), Texas (10.9%), New York (8.6%), New Jersey (6.5%) and Illinois (5.0%) account for 49.9% of FY2009–2024 applications.
+
+**3. One industry dominates.** Custom Computer Programming Services (NAICS 541511) accounts for 30.1% of all applications. Together with Computer Systems Design Services (541512), its share of each year's filings rose from 38.7% in FY2014 to 42.8% in FY2019, then fell to 33.5% in FY2024. Its median offered wage rose from $68,203 (FY2014) to $100,963 (FY2024), in nominal dollars.
+
+**4. Employers differ widely on pay.** The top FY2024 filers were Amazon (14,373 applications), Cognizant (11,217), Ernst & Young (9,712), Tata Consultancy Services (9,606) and Microsoft (9,420). Median offered wages among the top eight ranged from $83,616 (TCS) to $203,350 (Meta).
+
+**5. COVID cut filings almost everywhere, and the bigger drop came in FY2021.** Nationally, certified applications fell 7.7% from FY2019 to FY2020. 37 of the 39 states with at least 1,000 FY2019 applications declined, led by Louisiana (−18.8%), Nevada (−18.1%) and Florida (−17.4%); only North Carolina (+2.7%) and Washington (+14.1%) grew. Because the federal fiscal year starts in October, FY2021 (Oct 2020–Sep 2021) captures more of the pandemic, and most states fell further that year. Custom Computer Programming fell 20.7% in FY2020 and was 29.9% below FY2019 by FY2021, while Colleges and Universities grew 4.4%.
+
+![COVID Trends tab: change in applications by state, FY2019 to FY2020](docs/screenshots/covid_by_state.png)
+
+**6. Exposure to a $100,000 fee is concentrated in IT services and in California.** The Policy Exposure tab is a stress test that charges $100,000 for every certified application. Custom Computer Programming has by far the highest exposure score (27.0 out of 100; 31.8% of applications and 27.3% of wages). Among states, California scores highest (18.4), followed by Texas (9.6) and New York (8.1). At FY2024 volume, the fee would total about $50.6 billion in a single year.
+
+![Policy Exposure tab: exposure scores by industry and employer concentration](docs/screenshots/policy_exposure.png)
 
 ---
 
-## 📁 Project Structure
+## How to read the policy exposure model
+
+The model is loosely based on the $100,000 fee on certain new H-1B petitions introduced by presidential proclamation in September 2025. It is an upper-bound stress test, not a forecast:
+
+- It applies the fee to every certified application. The real fee applies only to some new petitions, and many certified applications never become petitions.
+- The "Total Policy Impact" card ($477.7 billion) adds up all 16 years of applications. The single-year figure above is a better sense of scale.
+- **Exposure score** = 50% share of applications + 40% share of total wages + 10% employer concentration. Concentration is measured with the Herfindahl–Hirschman Index (HHI) and capped at 0.25. Scores are computed on all FY2009–2024 applications pooled together.
+
+---
+
+## Data
+
+**Source:** [U.S. Department of Labor, Office of Foreign Labor Certification, LCA disclosure data](https://www.dol.gov/agencies/eta/foreign-labor/performance), FY2009–FY2024.
+
+**Scope:** applications with visa class H-1B and case status Certified, deduplicated by case number. That leaves 7,423,836 applications.
+
+### Processing notes
+
+The DOL files changed format many times over 16 years. These choices keep the years comparable:
+
+- **Fiscal year comes from the file** (the year the case was decided), matching how DOL publishes its totals. The received date would push cases into the prior year.
+- **Quarterly files are deduplicated.** From FY2020 on, DOL publishes quarterly files, and some of them are cumulative (FY2021 Q2 and Q3, FY2023 Q2). Duplicate case numbers are dropped on load.
+- **Wages are annualized** from hourly, weekly, bi-weekly and monthly rates. Annual wages below $10,000 or above $5 million are treated as data-entry errors and left blank.
+- **FY2019 worksites** are stored in columns ending in `_1` (`WORKSITE_STATE_1` and so on), unlike every other year. Without that mapping, worksites default to the employer's address, which would put all of Cognizant's 28,000 FY2019 applications in Texas.
+- **State names** spelled out in some files ("CALIFORNIA") are converted to two-letter codes.
+- **FY2009** comes from two filing systems with different layouts. The older one uses program codes instead of visa classes, old DOT occupation codes instead of SOC codes (stored with a `DOT-` prefix), and has no industry codes. FY2009 is included in state and employer totals but undercounts industries.
+- **FY2010** has no unit for the offered wage, so the prevailing-wage unit is used.
+- **FY2015** mixes day-first and month-first dates. Dates are not used in any analysis, so they are left as published.
+
+### Known limitations
+
+- An application (LCA) is filed before a petition. One LCA can cover several workers, and not every certified LCA leads to a hire, so these counts measure employer demand, not visas issued.
+- Industry comes from the NAICS code each employer files under. Some large employers file under different entities or codes in different years, which causes implausible jumps for a few industries, such as Research and Development in Physical Sciences (+353% from FY2019 to FY2020) and Management Consulting Services (−59%).
+- A few industry names correspond to more than one NAICS code, so they appear twice in some charts.
+- Wages are nominal, not adjusted for inflation.
+
+---
+
+## How it works
+
+```
+DOL Excel files ──► data_cleaning.py ──► PostgreSQL ──► materialized views ──► export_static.py ──► frontend/data/*.json ──► Next.js on Vercel
+   (raw, 16 yrs)     clean_all.py          (7.4M rows)     (by industry, state,    (summaries only,         (committed)              (API routes read JSON)
+                     fix_cleaned.py        load_data_fast.py  employer, COVID,         ~15 MB)
+                                                              exposure)
+```
+
+The full dataset lives in a local PostgreSQL database. Materialized views pre-aggregate it by industry, state, employer and year, and `export_static.py` writes those summaries to JSON. The deployed site serves only the JSON, so it runs on Vercel's free tier with no database.
+
+**Tech stack:** PostgreSQL 16, Python (pandas, psycopg2), Next.js 16, React 19, TypeScript, Tailwind CSS, Recharts, react-simple-maps.
+
+---
+
+## Running it locally
+
+The summary data is committed, so the dashboard runs without a database:
+
+```bash
+git clone https://github.com/averymattoon/H1-B-Economic-Impact-Dashboard.git
+cd H1-B-Economic-Impact-Dashboard/frontend
+npm install
+npm run dev
+```
+
+Then open http://localhost:3000.
+
+### Rebuilding the data from scratch
+
+You only need this to change the data or the analysis. It needs PostgreSQL and the raw DOL Excel files. See [database/README.md](database/README.md) for more on the schema.
+
+1. Download the H-1B/LCA disclosure files for FY2009–2024 from the DOL performance data page into `data/`.
+2. Create the database and schema: `createdb h1b_economic_impact`, then `psql -d h1b_economic_impact -f database/schema.sql`, then load industry names with `python3 database/load_naics_lookup.py`.
+3. Create `database/.env` with `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` and `DB_PASSWORD`. This file is gitignored.
+4. Clean the raw files. From `data/` (copy `data_cleaning.py`, `clean_all.py` and `fix_cleaned.py` there), run:
+   ```bash
+   python3 clean_all.py
+   python3 fix_cleaned.py
+   ```
+5. Load and build the summary views. From `database/`:
+   ```bash
+   PYTHONHASHSEED=0 python3 load_data_fast.py --all
+   psql -d h1b_economic_impact -f employer_metrics.sql
+   psql -d h1b_economic_impact -f COVID_feature.sql
+   psql -d h1b_economic_impact -f company_exposure.sql
+   ```
+   `PYTHONHASHSEED=0` keeps generated employer IDs stable across runs. Some years have no employer tax ID, so IDs are derived from employer names.
+6. Export the summaries for the dashboard: `python3 export_static.py` (from `database/`).
+
+---
+
+## Project structure
 
 ```
 H1-B-Economic-Impact-Dashboard/
-├── frontend/                  # Next.js application
+├── frontend/
 │   ├── app/
-│   │   ├── api/              # API routes for data fetching
-│   │   │   ├── covid-trends/route.ts
-│   │   │   ├── covid-industry/route.ts
-│   │   │   ├── covid-state/route.ts
-│   │   │   ├── employer-metrics/route.ts
-│   │   │   ├── exposure-metrics/route.ts
-│   │   │   ├── industry-exposure/route.ts
-│   │   │   ├── state-exposure/route.ts
-│   │   │   ├── industry-metrics/route.ts
-│   │   │   └── state-metrics/route.ts
-│   │   ├── page.tsx          # Main dashboard page
-│   │   ├── globals.css
-│   │   └── layout.tsx        # Root layout
-│   ├── components/           # React components
-│   │   ├── CovidIndustryChart.tsx
-│   │   ├── CovidStateChart.tsx
-│   │   ├── EmployerLeaderBoard.tsx
-│   │   ├── ExposureMetricsGrid.tsx
-│   │   ├── ExposureScatterPlot.tsx
-│   │   ├── ExposureStateHeatmap.tsx
-│   │   ├── ExposureTopIndustries.tsx
-│   │   ├── StateHeatmap.tsx  
-│   │   ├── IndustryCharts.tsx
-│   │   ├── StateCharts.tsx
-│   │   └── DashboardFilters.tsx
-│   ├── lib/
-│   │   ├── db.ts            # Database connection pool
-│   │   └── types.ts         # TypeScript interfaces
-│   └── package.json
-├── database/                 # Database setup & ETL
-│   ├── schema.sql           # PostgreSQL schema definition
-│   ├── data_cleaning.py
-│   ├── COVID_feature.sql    # Feature 2 query
-│   ├── company_exposure.sql # Feature 3 query
-│   ├── employer_matrics.sql
-│   ├── load_data_fast.py    # ETL script for H-1B data
-│   ├── load_data.py
-│   ├── load_naics_lookup.py # NAICS industry code loader
-│   └── GCP_SETUP_GUIDE.md   # Cloud SQL setup instructions
-├── analysis/                 # Python analysis scripts
-│   ├── faeture1_quick_analysis.py
-│   └── feature1_industry_analysis.py
-├── README.md
-└── data/                    # Raw CSV data (not in Git)
+│   │   ├── api/                 # Routes that serve and filter the JSON summaries
+│   │   └── page.tsx             # Dashboard (Overview, COVID Trends, Policy Exposure tabs)
+│   ├── components/              # Charts, maps, filters and tables
+│   ├── data/                    # Exported summary JSON (committed)
+│   └── lib/staticData.ts        # Loads the JSON for the API routes
+├── database/
+│   ├── schema.sql               # Tables and core materialized views
+│   ├── data_cleaning.py         # Maps each year's columns to one format
+│   ├── clean_all.py             # Cleans every raw file in data/
+│   ├── fix_cleaned.py           # Wage units and fiscal year by file
+│   ├── load_data_fast.py        # Bulk loader into PostgreSQL
+│   ├── employer_metrics.sql     # Employer summary view
+│   ├── COVID_feature.sql        # FY2019–2021 comparison view
+│   ├── company_exposure.sql     # Policy exposure scores
+│   └── export_static.py         # Writes frontend/data/*.json
+├── analysis/                    # Exploratory analysis from the course project
+└── data/                        # Raw and cleaned files (not in Git)
 ```
 
 ---
 
-## 🚀 Getting Started
+## Team
 
-### Prerequisites
+Jayden Bai, Unnati Agrawal and Avery Mattoon. CS 554: Advanced Database Systems, Emory University, Fall 2025.
 
-- **Node.js** (v20 or higher): [Download](https://nodejs.org/)
-- **PostgreSQL Client** (v16 or higher):
-  ```bash
-  # macOS
-  brew install postgresql@17
+## Acknowledgments
 
-  # Ubuntu/Debian
-  sudo apt install postgresql-client-16
-  ```
-- **Python** (v3.9+): For ETL scripts (optional)
-- **GCP Account**: With Cloud SQL instance running (see [database/GCP_SETUP_GUIDE.md](database/GCP_SETUP_GUIDE.md))
-
----
-
-## 📦 Installation
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/your-username/H1-B-Economic-Impact-Dashboard.git
-cd H1-B-Economic-Impact-Dashboard
-```
-
-### 2. Set Up Environment Variables
-
-Create a `.env.local` file in the `frontend/` directory:
-
-```bash
-cd frontend
-cp ../.env.example .env.local
-```
-
-Edit `.env.local` with your database credentials:
-
-```env
-# PostgreSQL Database Connection
-DB_HOST=your.gcp.ip.address
-DB_PORT=5432
-DB_NAME=h1b_economic_impact
-DB_USER=postgres
-DB_PASSWORD=your_password_here
-
-# Full Connection String
-DATABASE_URL=postgresql://postgres:your_password_here@your.gcp.ip.address:5432/h1b_economic_impact
-```
-
-> **Note**: Replace `your.gcp.ip.address` and `your_password_here` with your actual Cloud SQL credentials.
-
-### 3. Install Frontend Dependencies
-
-```bash
-cd frontend
-npm install
-```
-
----
-
-## 🗄️ Database Setup
-
-### Option 1: Connect to Existing GCP Instance
-
-If your team has already set up the database, you just need the connection details:
-
-1. Get the public IP address from GCP Console → Cloud SQL
-2. Add your IP to authorized networks (or ask a team member to do so)
-3. Update `.env.local` with the connection details
-4. Test the connection:
-
-```bash
-psql -h YOUR_GCP_IP -U postgres -d h1b_economic_impact
-```
-
-### Option 2: Set Up Your Own Database
-
-Follow the detailed guide in [database/GCP_SETUP_GUIDE.md](database/GCP_SETUP_GUIDE.md) to:
-1. Create a Cloud SQL PostgreSQL instance
-2. Run the schema (`schema.sql`)
-3. Load NAICS lookup data
-4. Import H-1B application data
-
-**Quick Start:**
-
-```bash
-# 1. Create schema
-cd database
-psql -h YOUR_GCP_IP -U postgres -d h1b_economic_impact -f schema.sql
-
-# 2. Load NAICS industry codes
-python load_naics_lookup.py
-
-# 3. Load H-1B data (requires CSV files in ../data/)
-python load_data_fast.py
-
-# 4. Refresh materialized views
-psql -h YOUR_GCP_IP -U postgres -d h1b_economic_impact -c "SELECT refresh_all_views();"
-```
-
----
-
-## 🏃 Running the Application Locally
-
-### Start the Development Server
-
-```bash
-cd frontend
-npm run dev
-```
-
-The application will be available at:
-- **Local**: http://localhost:3000
-- **Network**: http://YOUR_LOCAL_IP:3000
-
-### Verify Everything Works
-
-1. **Check Database Connection**: Open http://localhost:3000 and verify data loads
-2. **Test Filters**: Try changing year, industry, and state filters
-3. **Hover Over Map**: Ensure tooltips show state names and application counts
-4. **Check API Routes**:
-   - http://localhost:3000/api/state-metrics?year=2024
-   - http://localhost:3000/api/industry-metrics?year=2024
-
----
-
-## 🔧 Development Commands
-
-```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm run start
-
-# Run linter
-npm run lint
-```
-
----
-
-## 📊 Database Schema Overview
-
-### Main Tables
-
-1. **`employers`**: Unique employer information (FEIN, name, NAICS industry code)
-2. **`occupations`**: SOC (Standard Occupational Classification) codes and job titles
-3. **`worksite_locations`**: Geographic locations where H-1B workers are placed
-4. **`applications`**: Main H-1B application records (wages, status, dates)
-5. **`naics_lookup`**: Industry classification code to name mapping
-
-### Materialized Views (for Performance)
-
-- **`mv_industry_metrics`**: Pre-aggregated metrics by industry and fiscal year
-- **`mv_state_metrics`**: Pre-aggregated metrics by state and fiscal year
-- **`mv_occupation_metrics`**: Pre-aggregated metrics by occupation
-- **`mv_covid_trend_analysis`** 
-- **`mv_exposure_score_industry`**
-- **`mv_employer_metrics`**
-
-**Refresh Views After Data Changes:**
-```sql
-SELECT refresh_all_views();
-```
-
----
-
-## 🎨 Key Features
-
-### 1. Geographic Heatmaps
-- Interactive U.S. choropleth map showing **H-1B certified application volume by state**
-- Hover tooltips with state name/abbreviation and application count
-- Legend for interpreting relative intensity across states
-
-### 2. Employer Analysis
-- **Top Employers by Certified Applications** (bar chart)
-- Highlights sponsorship concentration and dominant filers under the selected filters
-- Hover tooltips show exact certified application counts
-
-### 3. Industry Analysis
-- **Top 10 Industries by Applications** (bar chart)
-- **Average vs. Median Wages by Industry** (grouped bars) to surface skew/outliers
-- **Industry Details Table** for long-tail industries, including application counts and employer totals
-
-### 4. State Analysis
-- **Top 15 States by Applications** (bar chart)
-- **Total Wages by State** (in millions) to estimate wage mass supported by H-1B roles
-- **State Details Table** including Applications, Distinct Employers, Avg Wage, and Total Wages
-
-### 5. COVID Trends (2019 → 2020)
-- **Industry Impact**: % change in certified applications from 2019 to 2020
-- **State Impact**: % change in certified applications from 2019 to 2020
-- Quickly identifies regions and sectors most disrupted during the COVID era
-
-### 6. Policy Exposure Modeling
-- Stress-test scenario modeling a **$100,000 fee per certified H-1B application**
-- KPI summary cards (Total Policy Impact, Critical Industries/States, High Concentration via HHI threshold)
-- Rankings and visuals:
-  - Top Industries by Exposure Score
-  - Exposure vs Employer Concentration bubble chart
-  - State Exposure choropleth map with hover details
-
-### 7. Dynamic Filters
-- **Year**: 2009–2024 (depends on loaded dataset range)
-- **Industry**: Filter by NAICS industry code (or “All”)
-- **State**: Filter by U.S. state abbreviation (or “All”)
-- Filters apply consistently across tabs and refresh charts/tables together
-
----
-
-## 🐛 Troubleshooting
-
-### Database Connection Fails
-
-**Error**: `connection refused` or `timeout`
-
-**Solutions**:
-1. Check that GCP Cloud SQL instance is running
-2. Verify your IP is whitelisted in GCP Console → Cloud SQL → Connections → Authorized Networks
-3. Test connection with psql: `psql -h YOUR_GCP_IP -U postgres -d h1b_economic_impact`
-4. Check firewall rules on your local machine
-
-### No Data Showing on Dashboard
-
-**Possible Causes**:
-1. Database is empty → Run ETL scripts to load data
-2. Materialized views not refreshed → Run `SELECT refresh_all_views();`
-3. Environment variables incorrect → Check `.env.local`
-
-**Verify Data Exists**:
-```sql
-SELECT COUNT(*) FROM applications;
-SELECT COUNT(*) FROM mv_state_metrics;
-SELECT COUNT(*) FROM mv_industry_metrics;
-```
-
-### Numbers Have Leading Zeros (e.g., "019318")
-
-**Fixed in Latest Version**: API routes now convert PostgreSQL `BIGINT` strings to numbers.
-
-If you still see this issue:
-1. Pull latest changes from `main` branch
-2. Restart the dev server: `npm run dev`
-
-### Map Not Displaying
-
-**Possible Causes**:
-1. Internet connection required to load GeoJSON from CDN
-2. Browser console shows CORS errors → Check network tab
-
-**Quick Fix**: Refresh the page
-
----
-
-## 📈 Performance Optimization
-
-### Materialized Views
-
-Our dashboard uses materialized views to pre-compute aggregations, reducing query time from seconds to milliseconds:
-
-```sql
--- Instead of this (slow):
-SELECT state, COUNT(*), AVG(wage)
-FROM applications
-JOIN worksite_locations ON ...
-WHERE fiscal_year = 2024
-GROUP BY state;
-
--- We query this (fast):
-SELECT * FROM mv_state_metrics
-WHERE fiscal_year = 2024;
-```
-
-### Connection Pooling
-
-The database connection pool (`lib/db.ts`) reuses connections to reduce overhead:
-- **Max Connections**: 20
-- **Idle Timeout**: 30 seconds
-- **Connection Timeout**: 2 seconds
-
----
-
-
-## 👥 Team
-
-- **Jayden Bai**
-- **Unnati Agrawal**
-- **Avery Mattoon**
-
-**Course**: CS 554 - Advanced Database Systems
-**Institution**: Emory University
-**Semester**: Fall 2024
-
----
-
-## 📝 License
-
-This project is for academic purposes only.
-
----
-
-## 🙏 Acknowledgments
-
-- H-1B data sourced from [U.S. Department of Labor]([https://www.dol.gov/](https://www.dol.gov/agencies/eta/foreign-labor/performance)
-- GeoJSON maps from [us-atlas](https://github.com/topojson/us-atlas)
-- Built with [Next.js](https://nextjs.org/), [Recharts](https://recharts.org/), and [react-simple-maps](https://www.react-simple-maps.io/)
+- Data: [U.S. Department of Labor, Office of Foreign Labor Certification](https://www.dol.gov/agencies/eta/foreign-labor/performance)
+- Maps: [us-atlas](https://github.com/topojson/us-atlas)
+- Built with [Next.js](https://nextjs.org/), [Recharts](https://recharts.org/) and [react-simple-maps](https://www.react-simple-maps.io/)
