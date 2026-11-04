@@ -86,18 +86,40 @@ write('employer_metrics.json', rows(f"""
     WHERE r_year <= {EMPLOYER_TOP_N} OR (named AND r_ind <= {EMPLOYER_TOP_N})
 """))
 
-# Same query the old /api/covid-trends route ran (it takes no filters)
-write('covid_trends.json', rows("""
-    SELECT c.industry, n.industry_name, c.app_count_change_2019_to_2020_pct, c.worksite_state,
-           ROUND((c.app_count_2020 - c.app_count_2019)::numeric
-                 / NULLIF(c.app_count_2019, 0) * 100, 2) AS pct_change_2019_2020
-    FROM mv_covid_trend_analysis c
-    LEFT JOIN naics_lookup n ON c.industry = n.naics_code
-    WHERE c.app_count_change_2019_to_2020_pct IS NOT NULL
-       OR (c.app_count_2019 > 0 AND c.app_count_2020 IS NOT NULL)
-    ORDER BY c.app_count_change_2019_to_2020_pct ASC NULLS LAST
-    LIMIT 200
+# COVID trends, summed to whole industries and whole states. Only groups with at least
+# MIN_2019 applications in FY2019 are kept, so tiny industry-state cells (e.g. 300 -> 1)
+# don't dominate the "largest declines" charts. Each row has a level of 'industry' or 'state'.
+MIN_2019 = 1000
+write('covid_trends.json', rows(f"""
+    WITH ind AS (
+      SELECT 'industry' AS level, n.industry_name AS name,
+             SUM(c.app_count_2019) AS app_count_2019, SUM(c.app_count_2020) AS app_count_2020,
+             SUM(c.app_count_2021) AS app_count_2021
+      FROM mv_covid_trend_analysis c
+      JOIN naics_lookup n ON c.industry = n.naics_code
+      GROUP BY n.industry_name
+    ),
+    st AS (
+      SELECT 'state' AS level, worksite_state AS name,
+             SUM(app_count_2019) AS app_count_2019, SUM(app_count_2020) AS app_count_2020,
+             SUM(app_count_2021) AS app_count_2021
+      FROM mv_covid_trend_analysis
+      WHERE worksite_state IS NOT NULL
+      GROUP BY worksite_state
+    ),
+    allrows AS (SELECT * FROM ind UNION ALL SELECT * FROM st)
+    SELECT level, name, app_count_2019, app_count_2020, app_count_2021,
+           ROUND(100.0 * (app_count_2020 - app_count_2019) / app_count_2019, 2) AS pct_change_2019_2020,
+           ROUND(100.0 * (app_count_2021 - app_count_2019) / app_count_2019, 2) AS pct_change_2019_2021
+    FROM allrows
+    WHERE app_count_2019 >= {MIN_2019}
+    ORDER BY level, pct_change_2019_2020
 """))
+
+# Sanity check printed to the terminal: national totals per year
+cur.execute("SELECT fiscal_year, COUNT(*) AS n FROM applications "
+            "WHERE fiscal_year BETWEEN 2018 AND 2022 GROUP BY 1 ORDER BY 1")
+print('Applications per fiscal year:', {r['fiscal_year']: r['n'] for r in cur.fetchall()})
 
 write('exposure_scores.json', {
     'industries': rows('SELECT * FROM mv_exposure_score_industry ORDER BY exposure_score DESC'),

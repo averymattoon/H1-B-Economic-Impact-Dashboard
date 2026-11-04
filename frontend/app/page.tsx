@@ -129,10 +129,10 @@ export default function Dashboard() {
       <header className="bg-white shadow-sm border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <h1 className="text-3xl font-bold text-slate-900">
-            H1-B Economic Impact Dashboard
+            H-1B Economic Impact Dashboard
           </h1>
           <p className="mt-2 text-sm text-slate-600">
-            Analyzing the economic impact of H1-B visa holders on U.S. industries and states
+            Analyzing the economic impact of H-1B visa holders on U.S. industries and states
           </p>
         </div>
       </header>
