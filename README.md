@@ -98,7 +98,7 @@ Then open http://localhost:3000.
 
 ### Rebuilding the data from scratch
 
-You only need this to change the data or the analysis. It needs PostgreSQL and the raw DOL Excel files. See [database/README.md](database/README.md) for more on the schema.
+You only need this to change the data or the analysis. It needs PostgreSQL and the raw DOL Excel files. See [database/README.md](database/README.md) for a guide to the scripts.
 
 1. Download the H-1B/LCA disclosure files for FY2009–2024 from the DOL performance data page into `data/`.
 2. Create the database and schema: `createdb h1b_economic_impact`, then `psql -d h1b_economic_impact -f database/schema.sql`, then load industry names with `python3 database/load_naics_lookup.py`.
