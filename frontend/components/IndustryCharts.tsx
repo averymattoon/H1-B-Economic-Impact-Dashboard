@@ -24,7 +24,7 @@ export default function IndustryCharts({ data }: IndustryChartsProps) {
     .slice(0, 10);
 
   // Helper function to truncate long names
-  const truncateName = (name: string, maxLength: number = 15) => {
+  const truncateName = (name: string, maxLength: number = 80) => {
     if (name.length <= maxLength) return name;
     return name.substring(0, maxLength) + '...';
   };
@@ -56,18 +56,17 @@ export default function IndustryCharts({ data }: IndustryChartsProps) {
         <h3 className="text-lg font-semibold text-slate-900 mb-4">
           Top 10 Industries by Applications
         </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={applicationsData}>
+        <ResponsiveContainer width="100%" height={420}>
+          <BarChart data={applicationsData} layout="vertical" margin={{ right: 16 }}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis
+            <XAxis type="number" tickFormatter={(v) => Number(v).toLocaleString()} />
+            <YAxis
+              type="category"
               dataKey="industry"
-              angle={-45}
-              textAnchor="end"
-              height={100}
+              width={210}
               interval={0}
-              tick={{ fontSize: 12.5, fill: '#000000' }}
+              tick={{ fontSize: 11, fill: '#0f172a' }}
             />
-            <YAxis />
             <Tooltip
               contentStyle={{ backgroundColor: 'white', border: '1px solid #ccc' }}
               labelFormatter={(label, payload) => {
@@ -88,21 +87,20 @@ export default function IndustryCharts({ data }: IndustryChartsProps) {
         <h3 className="text-lg font-semibold text-slate-900 mb-4">
           Average & Median Wages by Industry
         </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={wagesData}>
+        <ResponsiveContainer width="100%" height={420}>
+          <BarChart data={wagesData} layout="vertical" margin={{ right: 16 }}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis
+            <XAxis type="number" tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
+            <YAxis
+              type="category"
               dataKey="industry"
-              angle={-45}
-              textAnchor="end"
-              height={100}
+              width={210}
               interval={0}
-              tick={{ fontSize: 12.5, fill: '#000000' }}
+              tick={{ fontSize: 11, fill: '#0f172a' }}
             />
-            <YAxis tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
             <Tooltip
               contentStyle={{ backgroundColor: 'white', border: '1px solid #ccc' }}
-              formatter={(value) => `$${Number(value).toLocaleString()}`}
+              formatter={(value) => `$${Math.round(Number(value)).toLocaleString()}`}
               labelFormatter={(label, payload) => {
                 if (payload && payload[0]) {
                   return payload[0].payload.fullName;

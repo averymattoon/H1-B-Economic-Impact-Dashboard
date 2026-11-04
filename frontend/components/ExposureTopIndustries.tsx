@@ -68,6 +68,8 @@ export default function ExposureTopIndustries({ data }: { data: ExposureRow[] })
               type="category"
               dataKey="industry"
               width={220}
+              interval={0}
+              tick={{ fontSize: 11, fill: '#0f172a' }}
             />
             <Tooltip
               content={({ payload }: any) => {

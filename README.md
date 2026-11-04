@@ -63,7 +63,7 @@ The DOL files changed format many times over 16 years. These choices keep the ye
 
 - An application (LCA) is filed before a petition. One LCA can cover several workers, and not every certified LCA leads to a hire, so these counts measure employer demand, not visas issued.
 - Industry comes from the NAICS code each employer files under. Some large employers file under different entities or codes in different years, which causes implausible jumps for a few industries, such as Research and Development in Physical Sciences (+353% from FY2019 to FY2020) and Management Consulting Services (−59%).
-- A few industry names correspond to more than one NAICS code, so they appear twice in some charts.
+- Some industries are recorded under several NAICS codes (for example 5415, 54151 and 541512 for Computer Systems Design Services). The dashboard merges codes that share a name; merged medians are approximate (application-weighted averages of each code's median).
 - Wages are nominal, not adjusted for inflation.
 
 ---

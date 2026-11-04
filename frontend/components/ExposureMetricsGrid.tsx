@@ -12,6 +12,12 @@ interface ExposureMetricsGridProps {
   stateData: ExposureRow[];
 }
 
+// Values are in millions of dollars: 477658.9 -> "$477.7B"
+const formatMillions = (m: number) =>
+  m >= 1_000_000 ? `$${(m / 1_000_000).toFixed(1)}T`
+  : m >= 1_000 ? `$${(m / 1_000).toFixed(1)}B`
+  : `$${m.toFixed(0)}M`;
+
 export default function ExposureMetricsGrid({ 
   industryData, 
   stateData 
@@ -42,8 +48,8 @@ export default function ExposureMetricsGrid({
   const metrics = [
     {
       label: 'Total Policy Impact',
-      value: `$${industryTotalFees.toFixed(0)}M`,
-      description: 'Estimated fee increase across all industries',
+      value: formatMillions(industryTotalFees),
+      description: '$100K on every certified application, FY2009–2024 combined',
       color: 'bg-blue-50 text-blue-700 border-blue-200',
     },
     {
