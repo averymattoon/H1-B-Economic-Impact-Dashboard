@@ -23,6 +23,80 @@ def get_db_connection():
         password=os.getenv('DB_PASSWORD')
     )
 
+
+STATE_CODES = {
+    'ALABAMA': 'AL',
+    'ALASKA': 'AK',
+    'ARIZONA': 'AZ',
+    'ARKANSAS': 'AR',
+    'CALIFORNIA': 'CA',
+    'COLORADO': 'CO',
+    'CONNECTICUT': 'CT',
+    'DELAWARE': 'DE',
+    'DISTRICT OF COLUMBIA': 'DC',
+    'FLORIDA': 'FL',
+    'GEORGIA': 'GA',
+    'HAWAII': 'HI',
+    'IDAHO': 'ID',
+    'ILLINOIS': 'IL',
+    'INDIANA': 'IN',
+    'IOWA': 'IA',
+    'KANSAS': 'KS',
+    'KENTUCKY': 'KY',
+    'LOUISIANA': 'LA',
+    'MAINE': 'ME',
+    'MARYLAND': 'MD',
+    'MASSACHUSETTS': 'MA',
+    'MICHIGAN': 'MI',
+    'MINNESOTA': 'MN',
+    'MISSISSIPPI': 'MS',
+    'MISSOURI': 'MO',
+    'MONTANA': 'MT',
+    'NEBRASKA': 'NE',
+    'NEVADA': 'NV',
+    'NEW HAMPSHIRE': 'NH',
+    'NEW JERSEY': 'NJ',
+    'NEW MEXICO': 'NM',
+    'NEW YORK': 'NY',
+    'NORTH CAROLINA': 'NC',
+    'NORTH DAKOTA': 'ND',
+    'OHIO': 'OH',
+    'OKLAHOMA': 'OK',
+    'OREGON': 'OR',
+    'PENNSYLVANIA': 'PA',
+    'RHODE ISLAND': 'RI',
+    'SOUTH CAROLINA': 'SC',
+    'SOUTH DAKOTA': 'SD',
+    'TENNESSEE': 'TN',
+    'TEXAS': 'TX',
+    'UTAH': 'UT',
+    'VERMONT': 'VT',
+    'VIRGINIA': 'VA',
+    'WASHINGTON': 'WA',
+    'WEST VIRGINIA': 'WV',
+    'WISCONSIN': 'WI',
+    'WYOMING': 'WY',
+    'PUERTO RICO': 'PR',
+    'GUAM': 'GU',
+    'VIRGIN ISLANDS': 'VI',
+    'U.S. VIRGIN ISLANDS': 'VI',
+    'AMERICAN SAMOA': 'AS',
+    'NORTHERN MARIANA ISLANDS': 'MP',
+    'FEDERATED STATES OF MICRONESIA': 'FM',
+    'MARSHALL ISLANDS': 'MH',
+    'PALAU': 'PW',
+}
+
+
+def normalize_state(v):
+    """Return a 2-letter state code, converting full names; None if unrecognized."""
+    if v is None or pd.isna(v):
+        return None
+    t = ' '.join(str(v).strip().upper().split())
+    if len(t) == 2 and t.isalpha():
+        return t
+    return STATE_CODES.get(t)
+
 class H1BFastLoader:
     def __init__(self, data_dir='../data'):
         self.data_dir = Path(data_dir)
@@ -87,6 +161,17 @@ class H1BFastLoader:
 
         if 'worksite_zip' not in df.columns:
             df['worksite_zip'] = df.get('emp_zip', None)
+
+        # Worksite state must be a 2-letter code (the column is VARCHAR(2)). Some files
+        # (e.g. FY2019) spell states out, so convert full names; anything else becomes missing.
+        raw_state = df['worksite_state']
+        df['worksite_state'] = raw_state.map(normalize_state)
+        bad = raw_state.notna() & df['worksite_state'].isna()
+        if bad.any():
+            print(f"  {bad.sum():,} worksite states not recognized (set to missing), e.g. "
+                  f"{raw_state[bad].astype(str).value_counts().head(5).to_dict()}")
+        df['worksite_city'] = df['worksite_city'].astype('string').str.strip().str.slice(0, 100)
+        df['worksite_zip'] = df['worksite_zip'].astype('string').str.slice(0, 20)
 
         if 'wage_unit' not in df.columns:
             df['wage_unit'] = 'Year'  # Default to annual wage
